@@ -11,8 +11,7 @@ CHAT-APP/
 ├── backend/ # Node.js + Express + Socket.IO server
 ├── frontend/ # React (Vite) client
 
-yaml
-Copy code
+
 
 ---
 
@@ -46,3 +45,4 @@ npm run dev
 ⏳ Online status
 
 ⏳ Group chat support
+

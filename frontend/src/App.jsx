@@ -2,10 +2,8 @@ import React from 'react'
 
 const App = () => {
   return (
-    <div className='flex justify-center align-middle bg-red-700' >
-      <h2 className='text-5xl'>
-        hello
-      </h2>
+    <div className='  border-4 rounded-2xl'>
+      <h1 className='text-red-400 text-5xl text-center italic'>Naman</h1>
     </div>
   )
 }

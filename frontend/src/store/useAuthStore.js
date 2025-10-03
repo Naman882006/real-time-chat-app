@@ -59,21 +59,24 @@ finally{
             toast.error(error.response.data.message)
         }
     },
+    
+    updateProfile: async (data) => {
+  set({ isUpdatingProfile: true });
+  try {
+    const res = await axiosInstance.put("/auth/update-profile", data);
+    console.log("✅ Upload response:", res.data);
+    set({ authUser: res.data });
+    toast.success("Profile updated successfully");
+  } catch (error) {
+    console.log("❌ error in update profile:", error);
+    toast.error(error.response?.data?.message || "Error updating profile");
+  } finally {
+    set({ isUpdatingProfile: false });
+    console.log("⚡ set isUpdatingProfile false (finally)");
+  }
+}
+
 
     
-    updateProfile:async(data)=>{
-       set({isUpdatingProfile:true});
-       try {
-        const res = await axiosInstance.put("/auth/update-profile",data);
-        set({authUser:res.data});
-        toast.success("Profile updated successfully");
 
-       } catch (error) {
-        console.log("error in updated profile:",error);
-        toast.error(error?.response?.data?.message || "Something went wrong")
-       } 
-       finally{
-        set({isUpdatingProfile:false});
-       }
-    },
 }));

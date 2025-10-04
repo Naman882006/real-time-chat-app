@@ -13,7 +13,7 @@ import { useAuthStore } from './store/useAuthStore';
 import { useEffect } from 'react';
 import Loader from './components/Loader';
 import {Toaster} from 'react-hot-toast'
-import { useThemeStore } from './store/useAuthStore';
+import { useThemeStore } from './store/useThemeStore';
 
 const App = () => {
   const {authUser,checkAuth ,isCheckingAuth} = useAuthStore();

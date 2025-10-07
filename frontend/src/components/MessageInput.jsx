@@ -39,7 +39,7 @@ e.preventDefault();
 if(!text.trim() && !imagePreview) return;
 try {
     await sendMessage({
-        text:text.trim,
+        text:text.trim(),
          image:imagePreview,
         });
     setText("");

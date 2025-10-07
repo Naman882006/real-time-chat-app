@@ -2,7 +2,7 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import {axiosInstance } from "../lib/axios";
 
-export const useChatStore = create((set)=>({
+export const useChatStore = create((set,get)=>({
     messages:[],
     users:[],
     selectedUser:null,
@@ -37,12 +37,21 @@ export const useChatStore = create((set)=>({
       const {selectedUser, messages}=get();
       try {
         const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`,messageData);
-        set({messages:[...messages, res.data]});
+         if (!res?.data) {
+    throw new Error("No data returned from server");
+  }
+         const newMessage = res?.data;
+
+    if (!newMessage) throw new Error("No data returned from server");
+
+    // Ensure messages is always an array
+    set({ messages: [...(Array.isArray(messages) ? messages : []), newMessage] });
 
       } catch (error) {
-        toast.error(error.response.data.message);
-      }
+  toast.error(error.response?.data?.message || error.message);
+}
+
     },
 
-    setSelectedUser:(selecteduser)=> set({selecteduser}),
+    setSelectedUser:(selectedUser)=> set({selectedUser}),
 }))

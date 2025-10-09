@@ -2,29 +2,37 @@ import { useEffect } from 'react';
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import { useChatStore } from "../store/useChatStore";
-import MessageSkeleton from "./skeletons/MessageSkeleton ";
+import MessageSkeleton from '../components/skeletons/MessageSkeleton '
+
 import { formatMesssageTime } from '../lib/utlis';
 import { useAuthStore } from '../store/useAuthStore'; // <-- make sure authUser comes from here
 
 const ChatContainer = () => {
-  const { messages = [], getMessages, isMessagesloading, selectedUser } = useChatStore();
+  
+let lastMessageDate = null; // keep track of previous message's date
+  const { messages , getMessages, isMessagesloading, selectedUser } = useChatStore();
   const { authUser } = useAuthStore(); // <-- add this
 
-  useEffect(() => {
+
+  
+
+
+    useEffect(() => {
     if (selectedUser?._id) {
       getMessages(selectedUser._id);
     }
   }, [selectedUser?._id, getMessages]);
 
   if (isMessagesloading) {
-    return (
-      <div className="flex-1 flex flex-col overflow-auto">
-        <ChatHeader />
-        <MessageSkeleton />
-        <MessageInput />
-      </div>
-    );
+    return(
+     <div className="flex-1 flex flex-col overflow-auto">
+      <ChatHeader/>
+      <MessageSkeleton/>
+      <MessageInput/>
+     </div>
+  );
   }
+  
 
   return (
     <div className="flex-1 flex flex-col overflow-auto">
@@ -56,10 +64,10 @@ const ChatContainer = () => {
                 </time>
               </div>
 
-              <div className="chat-bubble flex">
-                {message.img && (
+              <div className="chat-bubble flex flex-col">
+                {message.image && (
                   <img
-                    src={message.img}
+                    src={message.image}
                     alt="Attachment"
                     className="sm:max-w-[200px] rounded-md mb-2"
                   />

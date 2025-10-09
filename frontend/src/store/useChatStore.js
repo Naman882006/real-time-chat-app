@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import {persist} from "zustand/middleware";
 import toast from "react-hot-toast";
 import {axiosInstance } from "../lib/axios";
 
@@ -25,33 +26,37 @@ export const useChatStore = create((set,get)=>({
         set({isMessagesloading:true});
         try {
             const res = await axiosInstance.get(`/messages/${userId}`);
-            set({messages: res.data});
-
+             const msgs = Array.isArray(res.data)
+      ? res.data
+      : res.data.messages || [];
+            
+ set({ messages: msgs, isMessagesloading: false });
         } catch (error) {
             toast.error(error.response.data.message);
         }finally{
             set({isMessagesloading:false});
         }
     },
-    sendMessage:async (messageData)=>{
-      const {selectedUser, messages}=get();
-      try {
-        const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`,messageData);
-         if (!res?.data) {
-    throw new Error("No data returned from server");
+sendMessage: async (messageData) => {
+  const { selectedUser, messages } = get();
+  try {
+    const res = await axiosInstance.post(
+      `/messages/send/${selectedUser._id}`,
+      messageData
+    );
+
+    // Make sure messages is always an array
+    const updatedMessages = Array.isArray(messages)
+      ? [...messages, res.data]
+      : [res.data];
+
+    set({ messages: updatedMessages });
+
+    return res.data; // important if you need it
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Failed to send message");
   }
-         const newMessage = res?.data;
-
-    if (!newMessage) throw new Error("No data returned from server");
-
-    // Ensure messages is always an array
-    set({ messages: [...(Array.isArray(messages) ? messages : []), newMessage] });
-
-      } catch (error) {
-  toast.error(error.response?.data?.message || error.message);
-}
-
-    },
+},
 
     setSelectedUser:(selectedUser)=> set({selectedUser}),
-}))
+}));

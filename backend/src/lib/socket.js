@@ -1,7 +1,6 @@
 import express from 'express';
 import {Server} from 'socket.io';
 import http from 'http';
-import { Socket } from 'dgram';
 
 const app =express();
 const server = http.createServer(app);
@@ -23,7 +22,23 @@ io.on("connection",(socket)=>{
     const userId = socket.handshake.query.userId;
     if(userId) userSocketMap[userId] = socket.id
 
-    io.emit("getOnlineUsers",Object.keys(userSocketMap))
+    io.emit("getOnlineUsers",Object.keys(userSocketMap));
+
+     // 📩 Listen for typing event
+  socket.on("typing", ({ receiverId }) => {
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("userTyping", { senderId: userId });
+    }
+  });
+
+  // 📨 Listen for stop typing event (optional but better UX)
+  socket.on("stopTyping", ({ receiverId }) => {
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("userStoppedTyping", { senderId: userId });
+    }
+  });
 
     socket.on("disconnect",()=>{
         console.log("A user disconnect",socket.id);

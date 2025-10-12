@@ -1,9 +1,13 @@
 import  { useRef, useState } from 'react'
 import { useChatStore } from '../store/useChatStore';
 import { Image, Send,X } from 'lucide-react';
+import { useAuthStore } from "../store/useAuthStore";
 import toast from 'react-hot-toast';
 
 const MessageInput = () => {
+  
+const { socket } = useAuthStore();
+const { selectedUser } = useChatStore();
 
 const [text, setText]= useState("");
 const [imagePreview,setImagePreview] = useState(null);
@@ -54,6 +58,12 @@ try {
 
 }
 
+const handleTyping = () => {
+  if (socket && selectedUser) {
+    socket.emit("typing", { receiverId: selectedUser._id });
+  }
+};
+
   return (
     <div className='p-4 w-full'>
         {imagePreview && (
@@ -82,7 +92,18 @@ try {
             className="w-full input input-bordered rounded-lg input-sm sm:input-md"
             placeholder="Type a message..."
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+               if (socket && selectedUser) {
+      socket.emit("typing", { receiverId: selectedUser._id });
+
+      // stop typing after 2 seconds of no input
+      clearTimeout(window.typingTimeout);
+      window.typingTimeout = setTimeout(() => {
+        socket.emit("stopTyping", { receiverId: selectedUser._id });
+      }, 2000);
+    }
+            }}
           />
           <input
             type="file"

@@ -10,9 +10,10 @@ import { useAuthStore } from '../store/useAuthStore'; // <-- make sure authUser 
 const ChatContainer = () => {
   
 let lastMessageDate = null; // keep track of previous message's date
-  const { messages , getMessages, isMessagesloading, selectedUser ,subscribeToMessages,unsubscribeToMessages} = useChatStore();
+  const { messages ,typingUser, getMessages, isMessagesloading, selectedUser ,subscribeToMessages,unsubscribeToMessages} = useChatStore();
   const { authUser } = useAuthStore(); // <-- add this
-  const messageEndRef = useRef(null)
+  const messageEndRef = useRef(null);
+  
 
   
 
@@ -91,6 +92,10 @@ useEffect(()=>{
           <p className="text-center text-gray-500">No messages yet.</p>
         )}
       </div>
+      {typingUser === selectedUser?._id && (
+  <p className="text-sm text-gray-400 italic mt-1">Typing...</p>
+)}
+      
 
       <MessageInput />
     </div>

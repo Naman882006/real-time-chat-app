@@ -1,82 +1,113 @@
 import { create } from "zustand";
-import {persist} from "zustand/middleware";
 import toast from "react-hot-toast";
-import {axiosInstance } from "../lib/axios";
+import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
-import { Socket } from "socket.io-client";
 
-export const useChatStore = create((set,get)=>({
-    messages:[],
-    users:[],
-    selectedUser:null,
-    isUsersLoading:false,
-    isMessagesloading:false,
+export const useChatStore = create((set, get) => ({
+  messages: [],
+  users: [],
+  selectedUser: null,
+  onlineUsers: [], // ✅ needed for online/offline
+  typingUser: null, // ✅ store who’s typing
+  isUsersLoading: false,
+  isMessagesLoading: false,
 
-    getUsers:async()=>{
-        set({isUsersLoading:true});
-        try {
-            const res= await axiosInstance.get("/messages/users");
-            set({users:res.data});
+  // 🟢 Fetch all users except logged-in
+  getUsers: async () => {
+    set({ isUsersLoading: true });
+    try {
+      const res = await axiosInstance.get("/messages/users");
+      set({ users: res.data });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to fetch users");
+    } finally {
+      set({ isUsersLoading: false });
+    }
+  },
 
-        } catch (error) {
-            toast.error(error.response.data.message);
-        }finally{
-            set({isUsersLoading:false});
-        }
-    },
-    getMessages:async(userId)=>{
-        set({isMessagesloading:true});
-        try {
-            const res = await axiosInstance.get(`/messages/${userId}`);
-             const msgs = Array.isArray(res.data)
-      ? res.data
-      : res.data.messages || [];
-            
- set({ messages: msgs, isMessagesloading: false });
-        } catch (error) {
-            toast.error(error.response.data.message);
-        }finally{
-            set({isMessagesloading:false});
-        }
-    },
-sendMessage: async (messageData) => {
-  const { selectedUser, messages } = get();
-  try {
-    const res = await axiosInstance.post(
-      `/messages/send/${selectedUser._id}`,
-      messageData
-    );
+  // 💬 Fetch messages for selected user
+  getMessages: async (userId) => {
+    set({ isMessagesLoading: true });
+    try {
+      const res = await axiosInstance.get(`/messages/${userId}`);
+      const msgs = Array.isArray(res.data)
+        ? res.data
+        : res.data.messages || [];
+      set({ messages: msgs });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to fetch messages");
+    } finally {
+      set({ isMessagesLoading: false });
+    }
+  },
 
-    // // Make sure messages is always an array
-    // const updatedMessages = Array.isArray(messages)
-    //   ? [...messages, res.data]
-    //   : [res.data];
+  // ✉️ Send message
+  sendMessage: async (messageData) => {
+    const { selectedUser, messages } = get();
+    try {
+      const res = await axiosInstance.post(
+        `/messages/send/${selectedUser._id}`,
+        messageData
+      );
+      set({ messages: [...messages, res.data] });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send message");
+    }
+  },
 
-    set({ messages: [...messages,res.data] });
+  // 🧠 Subscribe to new messages (real-time)
+  subscribeToMessages: () => {
+    const { selectedUser } = get();
+    if (!selectedUser) return;
 
-    // return res.data; // important if you need it
-  } catch (error) {
-    toast.error(error.response?.data?.message || "Failed to send message");
-  }
-},
-subscribeToMessages:()=>{
-const{selectedUser} = get()
-if(!selectedUser) return
+    const socket = useAuthStore.getState().socket;
 
+    socket.off("newMessage");
+    socket.on("newMessage", (newMessage) => {
+      const { selectedUser, messages } = get();
 
-const socket = useAuthStore.getState().socket;
+      // Only add message if it's from the active chat user
+      if (
+        newMessage.senderId === selectedUser._id ||
+        newMessage.receiverId === selectedUser._id
+      ) {
+        set({ messages: [...messages, newMessage] });
+      }
+    });
+  },
 
-socket.on("newMessage",(newMessage)=>{
-  const isMessageSentFromSelected =newMessage.senderId !== selectedUser._id;
-  if(isMessageSentFromSelected) return
-set({
-  messages:[...get().messages,newMessage],
-})
-})
-},
-unsubscribeToMessages:()=>{
-const socket = useAuthStore.getState().socket;
-socket.off("newMessage")
-},
-    setSelectedUser:(selectedUser)=> set({selectedUser}),
+  // 🚫 Unsubscribe to messages
+  unsubscribeToMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    socket.off("newMessage");
+  },
+
+  // ✍️ Subscribe to typing + online status
+  subscribeToSocketEvents: () => {
+    const socket = useAuthStore.getState().socket;
+
+    // ✅ Online users
+    socket.on("getOnlineUsers", (onlineUserIds) => {
+      set({ onlineUsers: onlineUserIds });
+    });
+
+    // 💬 User typing
+    socket.on("userTyping", ({ senderId }) => {
+      const { selectedUser } = get();
+      if (selectedUser && senderId === selectedUser._id) {
+        set({ typingUser: senderId });
+      }
+    });
+
+    // 💬 Stop typing
+    socket.on("userStoppedTyping", ({ senderId }) => {
+      const { selectedUser } = get();
+      if (selectedUser && senderId === selectedUser._id) {
+        set({ typingUser: null });
+      }
+    });
+  },
+
+  // ✅ Set selected chat user
+  setSelectedUser: (selectedUser) => set({ selectedUser }),
 }));
